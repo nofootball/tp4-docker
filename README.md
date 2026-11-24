@@ -26,6 +26,8 @@ Conteneuriser une application (client React + serveur Express), la faire communi
 
 \- `docker-compose.yml` : orchestration des 3 services
 
+\- `Jenkinsfile` : pipeline CI/CD (build, test, push, deploy)
+
 
 
 **## Étapes réalisées**
@@ -243,6 +245,56 @@ docker compose up --build
 \- Client : http://localhost:3000
 
 \- API : http://localhost:9000/api/health (réponse : `{"message":"API is running"}`)
+
+
+
+**## Pipeline Jenkins (CI/CD)**
+
+
+
+Le fichier `Jenkinsfile` à la racine du projet automatise le cycle complet, comme dans le TP3 :
+
+
+
+| Étape | Rôle |
+
+|---|---|
+
+| Checkout | Récupère le code depuis GitHub |
+
+| Docker Build | Construit les images `mern-server` et `mern-client` |
+
+| Smoke Test | Lance les deux conteneurs de test (ports 9001 et 3001) et vérifie `/api/health` et la réponse HTTP 200 du client |
+
+| Push (Docker Hub) | Pousse les images avec les tags `build-N` et `latest` |
+
+| Deploy | Lance l'application avec `docker compose up -d --build` |
+
+
+
+Configuration Jenkins :
+
+\- Job de type Pipeline, « Pipeline script from SCM », dépôt Git du projet, branche `main`, Script Path `Jenkinsfile`
+
+\- Credential `dockerhub-creds` (Username with password) pour se connecter à Docker Hub
+
+
+
+**## Images Docker Hub**
+
+\- Serveur : `amelnechi/mern-server`
+
+\- Client : `amelnechi/mern-client`
+
+
+
+Récupération :
+
+
+
+docker pull amelnechi/mern-server:latest
+
+docker pull amelnechi/mern-client:latest
 
 
 
