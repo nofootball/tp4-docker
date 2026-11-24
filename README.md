@@ -1,18 +1,24 @@
-\# TP4 - Docker et Docker Compose (application MERN)
-
-Amel Nechi 
-
-groupe 5B
+**# TP4: Docker et Docker Compose (application MERN)**
 
 
 
-\## Prérequis
-
-\- Docker Desktop installé et démarré
+etudiante : Amel Nechi, groupe 5B
 
 
 
-\## Structure du projet
+**## Objectif**
+
+Conteneuriser une application (client React + serveur Express), la faire communiquer avec MongoDB via un réseau Docker, puis orchestrer le tout avec Docker Compose.
+
+
+
+**## Prérequis**
+
+\- Docker Desktop installé et démarré (`docker version` doit afficher Client et Server)
+
+
+
+**## Structure du projet**
 
 \- `Client/` : application React (Vite) + Dockerfile
 
@@ -22,19 +28,23 @@ groupe 5B
 
 
 
-\## Étapes réalisées
+**## Étapes réalisées**
 
 
 
-\### 1. Cloner le projet
+**### 1. Cloner le projet**
 
-&#x20;   git clone https://github.com/wiem-kb/MyAppReact.git
+git clone https://github.com/wiem-kb/MyAppReact.git
+
+cd MyAppReact
 
 
 
-\### 2. Dockerfiles
 
-\- Serveur (`Server/Dockerfile`) : image de base node:lts-alpine, répertoire de travail /app, copie de package\*.json, npm install, copie du code, port 9000, démarrage avec npm start.
+
+**### 2. Dockerfile du serveur (`Server/Dockerfile`)**
+
+dockerfile
 
 FROM node:lts-alpine
 
@@ -54,9 +64,19 @@ CMD \["npm", "start"]
 
 
 
+Construction :
 
 
-\- Client (`Client/Dockerfile`) : image de base node:lts-alpine, répertoire de travail /app, copie de package\*.json, npm install, copie du code, npm run build, installation de serve, port 3000, démarrage avec serve sur le dossier dist.
+
+docker build -t mern-server ./Server
+
+
+
+
+
+**### 3. Dockerfile du client (`Client/Dockerfile`)**
+
+dockerfile
 
 FROM node:lts-alpine
 
@@ -80,39 +100,133 @@ CMD \["serve", "-s", "dist", "-l", "3000"]
 
 
 
-Construction des images :
+Construction :
 
 
 
-&#x20;   docker build -t mern-server ./Server
-
-&#x20;   docker build -t mern-client ./Client
+docker build -t mern-client ./Client
 
 
 
-\### 3. Réseau Docker
-
-&#x20;   docker network create mern-network
 
 
-
-\### 4. MongoDB
-
-&#x20;   docker run -d --name mongodb --network mern-network mongo
+**### 4. Réseau Docker**
 
 
 
-\### 5. Serveur et client
-
-&#x20;   docker run -d --name server --network mern-network -p 9000:9000 -e MONGO\_URI=mongodb://mongodb:27017/mern mern-server
-
-&#x20;   docker run -d --name client --network mern-network -p 3000:3000 mern-client
+docker network create mern-network
 
 
 
-\### 6. Docker Compose
+Un réseau personnalisé permet aux conteneurs de communiquer entre eux en utilisant le nom du conteneur comme nom d'hôte.
 
-Le fichier `docker-compose.yml` définit les services mongodb, server et client, connectés au réseau mern-network (driver bridge). Le serveur dépend de mongodb et définit la variable MONGO\_URI. Le client dépend du serveur.
+
+
+**### 5. MongoDB**
+
+
+
+docker run -d --name mongodb --network mern-network mongo
+
+
+
+
+
+**### 6. Serveur et client**
+
+
+
+docker run -d --name server --network mern-network -p 9000:9000 -e MONGO\_URI=mongodb://mongodb:27017/mern mern-server
+
+docker run -d --name client --network mern-network -p 3000:3000 mern-client
+
+
+
+
+
+Vérification : `docker ps` affiche les 3 conteneurs avec le statut `Up`.
+
+
+
+\### 7. Docker Compose (`docker-compose.yml`)
+
+yaml
+
+services:
+
+&#x20; mongodb:
+
+&#x20;   image: mongo
+
+&#x20;   container\_name: mongodb
+
+&#x20;   networks:
+
+&#x20;     - mern-network
+
+
+
+&#x20; server:
+
+&#x20;   build: ./Server
+
+&#x20;   container\_name: server
+
+&#x20;   ports:
+
+&#x20;     - "9000:9000"
+
+&#x20;   environment:
+
+&#x20;     - MONGO\_URI=mongodb://mongodb:27017/mern
+
+&#x20;   depends\_on:
+
+&#x20;     - mongodb
+
+&#x20;   networks:
+
+&#x20;     - mern-network
+
+
+
+&#x20; client:
+
+&#x20;   build: ./Client
+
+&#x20;   container\_name: client
+
+&#x20;   ports:
+
+&#x20;     - "3000:3000"
+
+&#x20;   depends\_on:
+
+&#x20;     - server
+
+&#x20;   networks:
+
+&#x20;     - mern-network
+
+
+
+networks:
+
+&#x20; mern-network:
+
+&#x20;   driver: bridge
+
+
+
+
+
+\- Les conteneurs anciens (étapes 4 à 6) ont été supprimés avant, pour libérer les ports et le réseau :
+
+
+
+docker rm -f client server mongodb
+
+docker network rm mern-network
 
 
 
@@ -120,19 +234,23 @@ Lancement :
 
 
 
-&#x20;   docker compose up --build
+docker compose up --build
 
 
 
-\## Accès
+**## Résultats**
 
 \- Client : http://localhost:3000
 
-\- API : http://localhost:9000/api/health
+\- API : http://localhost:9000/api/health (réponse : `{"message":"API is running"}`)
 
 
 
-\## Arrêt
 
-&#x20;   docker compose down
+
+**## Arrêt**
+
+docker compose down
+
+
 
